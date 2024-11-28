@@ -1,13 +1,9 @@
 package com.fh.smarthouse.management;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
-import java.util.logging.FileHandler;
-import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.logging.SimpleFormatter;
 
 import com.fh.smarthouse.energy.EnergySource;
 import com.fh.smarthouse.objects.SmartObject;
@@ -17,7 +13,8 @@ public class EnergyManager {
 	private final List<SmartObject> smartObjects;
 	private final List<EnergySource> energySources;
 	private EnergySource activeSource;
-	private static final Logger logger = Logger.getLogger(EnergyManager.class.getName());
+	
+	private static final Logger logger = LogManager.getLogger();
 
 	public EnergyManager(List<SmartObject> smartObjects, List<EnergySource> energySources) {
 		this.smartObjects = smartObjects;
@@ -51,7 +48,7 @@ public class EnergyManager {
 		System.out.println("\nSmart object '" + name + "' added.");
 	}
 
-	public void listSmartObject() {
+	public void listSmartObject(Scanner scanner) {
 		boolean exit = false;
 
 		while (!exit) {
@@ -65,16 +62,15 @@ public class EnergyManager {
 			}
 			// Option to exit the menu
 			System.out.print("\nEnter (0) to go back: ");
-			Scanner scanner = new Scanner(System.in);
 			String userInput = scanner.next();
 
 			if ("0".equals(userInput)) {
 				exit = true;
-				scanner.close();
 				System.out.println("Returning to the previous menu...");
 			} else {
 				System.out.println("Invalid input. Please enter 0 to go back.");
 			}
+			
 		}
 	}
 
@@ -110,44 +106,48 @@ public class EnergyManager {
 	}
 
 	public void balanceLoadAcrossSources() {
-		System.out.println("\nBalancing load across energy sources...");
-		List<Thread> threads = new ArrayList<>();
-		final double[] remainingCapacity = { activeSource.getCapacity() }; // Start with the active source
-		for (SmartObject object : smartObjects) {
-			if (object.isOn()) {
-				Thread thread = new Thread(() -> {
-					synchronized (energySources) {
-						for (EnergySource source : energySources) {
-							if (remainingCapacity[0] >= object.getConsumption()) {
-								remainingCapacity[0] -= object.getConsumption();
-								System.out.println(
-										object.getName() + " is powered by " + source.getClass().getSimpleName());
-								break;
-							} else if (energySources.indexOf(source) < energySources.size() - 1) {
-								remainingCapacity[0] = energySources.get(energySources.indexOf(source) + 1)
-										.getCapacity();
-							} else {
-								logger.warning(object.getName() + " cannot be powered due to insufficient capacity.");
-							}
-						}
-					}
-				});
-				threads.add(thread);
-				thread.start();
-			}
+        logger.info("\nBalancing load across energy sources...");
+        
+        List<Thread> threads = new ArrayList<>();
+        final double[] remainingCapacity = {activeSource.getCapacity()}; // Start with the active source
 
-		}
-		for (Thread thread : threads) {
-			try {
-				thread.join();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
+        for (SmartObject object : smartObjects) {
+            if (object.isOn()) {
+                Thread thread = new Thread(() -> {
+                    synchronized (energySources) {
+                        for (EnergySource source : energySources) {
+                            if (remainingCapacity[0] >= object.getConsumption()) {
+                                remainingCapacity[0] -= object.getConsumption();
+                                System.out.println(object.getName() + " is powered by " + source.getClass().getSimpleName());
+                                break;
+                            } else if (energySources.indexOf(source) < energySources.size() - 1) {
+                                remainingCapacity[0] = energySources.get(energySources.indexOf(source) + 1).getCapacity();
+                            } else {
+//                                logger.w(object.getName() + " cannot be powered due to insufficient capacity.");
+                                logger.warning(object.getName() + " cannot be powered due to insufficient capacity.");
+                            }
+                        }
+                    }
+                });
+                threads.add(thread);
+                thread.start();
+            }
+        }
+	
 
+        // Wait for all threads to finish
+        for (Thread thread : threads) {
+            try {
+                thread.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            
+            }
+        }
 	}
 
 	public double calculateTotalConsumption() {
+		
 		double totalConsumption = 0.0;
 		for (SmartObject smartObject : smartObjects) {
 			if (smartObject.isOn()) {
@@ -156,4 +156,5 @@ public class EnergyManager {
 		}
 		return totalConsumption;
 	}
+
 }

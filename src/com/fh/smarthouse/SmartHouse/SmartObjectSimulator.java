@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.InputMismatchException;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -20,7 +21,6 @@ public class SmartObjectSimulator {
 	private static final Logger logger = Logger.getLogger(SmartObjectSimulator.class.getName());
 
 	public static void main(String[] args) {// Initialize energy sources
-
 		List<EnergySource> energySources = Arrays.asList(new SolarPanel(500), new CityPower(1000),
 				new DieselGenerator(800));
 
@@ -115,7 +115,6 @@ public class SmartObjectSimulator {
 	private static void manageSmartObjects(EnergyManager manager, Scanner scanner) {
 		boolean exit = false;
 		try {
-
 			while (!exit) {
 				System.out.println("\n<<< Manage Smart Objects >>>");
 				System.out.println("1. Add Smart Object");
@@ -125,40 +124,51 @@ public class SmartObjectSimulator {
 				System.out.println("0. Go Back");
 				System.out.print("Choose an option: ");
 
-				int choice = scanner.nextInt();
+				if (scanner.hasNextInt()) {
+					int choice = scanner.nextInt();
+					scanner.nextLine();
 
-				switch (choice) {
-				case 1:
-					manager.addSmartObject(scanner); // Add a new smart object
-					break;
-				case 2: {
-					System.out.print("Enter the name of the object to remove: ");
-					String name = scanner.next();
-					manager.deleteSmartObject(name); // Remove the specified smart object
-					break;
-				}
-				case 3:
-					toggleSmartObject(manager, scanner); // Toggle the state of a smart object
-					break;
-				case 4:
-					manager.listSmartObject(); // List all smart objects
-					break;
-				case 0:
-					exit = true; // Exit the menu
-					break;
-				default:
-					System.out.println("Invalid option. Please try again."); // Handle invalid input
-					break;
+					switch (choice) {
+					case 1:
+						manager.addSmartObject(scanner); // Add a new smart object
+						break;
+					case 2:
+						System.out.print("Enter the name of the object to remove: ");
+						String name = scanner.nextLine(); // Read the object name
+						manager.deleteSmartObject(name); // Remove the specified smart object
+						break;
+					case 3:
+						toggleSmartObject(manager, scanner); // Toggle the state of a smart object
+						break;
+					case 4:
+						manager.listSmartObject(scanner); // List all smart objects
+						break;
+					case 0:
+						exit = true; // Exit the menu
+						break;
+					default:
+						System.out.println("Invalid option. Please try again.");
+						break;
+					}
+				} else {
+					// Handle the case where there's no valid input (e.g., user presses Enter
+					// without input)
+					System.out.println("Invalid input. Please enter a valid number.");
+					scanner.nextLine(); // Clear the invalid input
 				}
 			}
+
 			System.out.println("Returning to the previous menu...");
 		} catch (InputMismatchException e) {
 			logger.warning("Invalid input. Please enter a valid number.");
-			scanner.nextLine(); // Clear invalid input
+			scanner.nextLine(); // Clear the invalid input from the buffer
+		} catch (NoSuchElementException e) {
+			logger.warning("No input available, exiting...");
+			// Close the scanner if an error occurs
+			scanner.close();
+			System.exit(1); // Terminate the program
 		} catch (Exception e) {
 			logger.log(Level.WARNING, "Error while managing smart objects: " + e.getMessage(), e);
-		} finally {
-			exit = true;
 		}
 	}
 

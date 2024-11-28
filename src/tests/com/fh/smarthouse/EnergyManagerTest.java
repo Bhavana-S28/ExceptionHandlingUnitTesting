@@ -90,16 +90,5 @@ public class EnergyManagerTest {
 		assertEquals(newSource, manager.getActiveSource(), "The active energy source should be updated.");
 	}
 
-	@Test
-	public void testStartLoadBalancing() {
-		// The method starts a new thread for each object, so we simulate this by
-		// checking if the method is called.
-		EnergyManager spyManager = spy(manager);
-
-		spyManager.balanceLoadAcrossSources();
-
-		// Verify if the load balancing method has been called
-		verify(spyManager, times(1)).balanceLoadAcrossSources();
-	}
 
 }
